@@ -5,26 +5,25 @@ from database import Base
 import enum
 from datetime import datetime
 
-# Define Status Options (Strict choices only)
 class BagStatus(str, enum.Enum):
-    RECEIVED = "received"       # Stage 1: Entry
-    WASHING = "washing"         # Stage 2: Processing
-    READY = "ready"             # Stage 3: Shelving
-    DELIVERED = "delivered"     # Stage 4: Exit
+    RECEIVED = "received"
+    WASHING = "washing"
+    READY = "ready"
+    DELIVERED = "delivered"
 
 class Student(Base):
     __tablename__ = "students"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    card_no = Column(String, unique=True, index=True, nullable=False) # Scanned via RFID/Barcode
+    # This CARD NO is the BAG NO (e.g., "B-101")
+    card_no = Column(String, unique=True, index=True, nullable=False) 
+    registration_no = Column(String, nullable=False) # New Field
     room_no = Column(String, nullable=False)
     phone_number = Column(String, nullable=True)
     
-    # Wallet Logic
-    total_credits = Column(Integer, default=50) # The "Holes" logic
+    total_credits = Column(Integer, default=50)
     
-    # Relationship: One Student -> Many Transactions
     transactions = relationship("LaundryTransaction", back_populates="student")
 
 class LaundryTransaction(Base):
@@ -32,20 +31,17 @@ class LaundryTransaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     
-    # Linking to Student
+    # We link to student via ID. 
+    # Since Student Card = Bag No, we don't need a separate bag_no column here.
     student_id = Column(Integer, ForeignKey("students.id"))
     
-    # Bag Details
-    bag_number = Column(String, index=True) # The physical bag ID
-    clothes_count = Column(Integer, default=0) # Count at Entry
-    
-    # The "Pool System" Logic (Timestamps for Reports)
+    clothes_count = Column(Integer, default=0)
     status = Column(Enum(BagStatus), default=BagStatus.RECEIVED)
     
-    created_at = Column(DateTime, default=datetime.now) # Register 1 Date
-    washing_at = Column(DateTime, nullable=True)        # Register 2 Date
-    ready_at = Column(DateTime, nullable=True)          # Register 3 Date
-    delivered_at = Column(DateTime, nullable=True)      # Register 4 Date
+    # Timestamps for Registers
+    created_at = Column(DateTime, default=datetime.now)
+    washing_at = Column(DateTime, nullable=True)
+    ready_at = Column(DateTime, nullable=True)
+    delivered_at = Column(DateTime, nullable=True)
     
-    # Relationship
     student = relationship("Student", back_populates="transactions")
