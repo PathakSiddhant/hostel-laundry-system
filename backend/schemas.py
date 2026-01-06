@@ -1,39 +1,39 @@
 # backend/schemas.py
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 from enum import Enum
 
-# Mirror the Enum from models to share logic
 class BagStatus(str, Enum):
     RECEIVED = "received"
     WASHING = "washing"
     READY = "ready"
     DELIVERED = "delivered"
 
-# --- STUDENT SCHEMAS ---
+# --- STUDENT ---
 class StudentBase(BaseModel):
     name: str
-    card_no: str
+    card_no: str # This is the Bag Number
+    registration_no: str # New Field
     room_no: str
     phone_number: Optional[str] = None
     total_credits: int = 50
 
 class StudentCreate(StudentBase):
-    pass # Used when creating a new student
+    pass
 
 class StudentResponse(StudentBase):
     id: int
     class Config:
-        from_attributes = True # Allows Pydantic to read SQLAlchemy models
+        from_attributes = True
 
-# --- TRANSACTION SCHEMAS ---
+# --- TRANSACTION ---
 class TransactionBase(BaseModel):
-    bag_number: str
     clothes_count: int
 
+# When Entry happens, we only need Card No (Bag No) and Clothes Count
 class TransactionCreate(TransactionBase):
-    card_no: str # We need Card No to link the bag to a student
+    card_no: str 
 
 class TransactionResponse(TransactionBase):
     id: int
@@ -42,7 +42,7 @@ class TransactionResponse(TransactionBase):
     washing_at: Optional[datetime] = None
     ready_at: Optional[datetime] = None
     delivered_at: Optional[datetime] = None
-    student: StudentResponse # Nested student data
+    student: StudentResponse
 
     class Config:
         from_attributes = True
