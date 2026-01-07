@@ -88,6 +88,12 @@ def check_status(card_no: str, db: Session = Depends(get_db)):
     return data
 
 
+# --- REPORT LIVE VIEW (JSON) ---
+@app.get("/report/live")
+def get_live_report_json(db: Session = Depends(get_db)):
+    # Same logic reuse karenge jo Excel ke liye banaya tha
+    return crud.get_daily_report_data(db)
+
 # --- REPORT EXPORT ---
 @app.get("/export/daily")
 def export_daily_report(db: Session = Depends(get_db)):

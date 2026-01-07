@@ -5,12 +5,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shirt, Truck, CheckCircle, ClipboardList, AlertCircle, Lock, KeyRound, Download } from "lucide-react";
+import { Shirt, Truck, CheckCircle, ClipboardList, AlertCircle, Lock, KeyRound, Download, Eye } from "lucide-react";
 import api from "@/utils/api";
+
+// --- NEW IMPORTS FOR POPUP & TABLE ---
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function AdminDashboard() {
   // --- SECURITY STATE ---
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Default Locked
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -31,10 +35,13 @@ export default function AdminDashboard() {
   const [delCard, setDelCard] = useState("");
   const [delResult, setDelResult] = useState<any>(null);
 
+  // --- LIVE REPORT STATE ---
+  const [liveData, setLiveData] = useState<any>(null);
+  const [isLiveOpen, setIsLiveOpen] = useState(false);
+
   // --- LOGIN HANDLER ---
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple Hardcoded Password
     if (passcode === "admin123") {
       setIsAuthenticated(true);
       setLoginError("");
@@ -47,10 +54,7 @@ export default function AdminDashboard() {
   // --- DOWNLOAD REPORT HANDLER ---
   const handleDownloadReport = async () => {
     try {
-      // Backend URL construction
       const downloadUrl = `http://localhost:8000/export/daily`;
-      
-      // Create hidden link and trigger click
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.setAttribute('download', `Laundry_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -59,6 +63,17 @@ export default function AdminDashboard() {
       link.parentNode?.removeChild(link);
     } catch (error) {
       alert("Failed to download report. Make sure backend is running.");
+    }
+  };
+
+  // --- LIVE REPORT HANDLER ---
+  const fetchLiveReport = async () => {
+    try {
+      // Jab popup khule, tab data fetch karo
+      const response = await api.get("/report/live");
+      setLiveData(response.data);
+    } catch (error) {
+      alert("Failed to load live data");
     }
   };
 
@@ -127,12 +142,11 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- 🔒 RENDER LOGIN SCREEN IF NOT AUTHENTICATED ---
+  // --- 🔒 RENDER LOGIN SCREEN ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-           {/* Login Header */}
            <div className="bg-[#1e3a8a] p-8 text-center">
               <div className="h-16 w-auto mx-auto mb-4 bg-white rounded-lg p-2 inline-block">
                 <img src="/poornima-logo.png" alt="PU" className="h-full w-auto object-contain" />
@@ -141,7 +155,6 @@ export default function AdminDashboard() {
               <p className="text-blue-200 text-sm mt-1">Authorized Access Only</p>
            </div>
            
-           {/* Login Form */}
            <div className="p-8">
              <form onSubmit={handleLogin} className="space-y-6">
                 <div className="space-y-2">
@@ -180,7 +193,7 @@ export default function AdminDashboard() {
     );
   }
 
-  // --- 🔓 RENDER DASHBOARD IF AUTHENTICATED ---
+  // --- 🔓 RENDER DASHBOARD ---
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pb-20 font-sans">
       
@@ -200,17 +213,95 @@ export default function AdminDashboard() {
                 </div>
             </div>
             
-            {/* Header Right Side: Download + Profile */}
-            <div className="flex items-center gap-4">
+            {/* Header Right Side Buttons */}
+            <div className="flex items-center gap-2 md:gap-4">
                 
-                {/* --- DOWNLOAD REPORT BUTTON --- */}
+                {/* --- NEW: LIVE VIEW BUTTON --- */}
+                <Dialog open={isLiveOpen} onOpenChange={setIsLiveOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      onClick={fetchLiveReport}
+                      className="hidden md:flex gap-2 bg-[#fbbf24] hover:bg-[#f59e0b] text-[#1e3a8a] font-bold border-none"
+                    >
+                      <Eye size={18} />
+                      Live Workbook
+                    </Button>
+                  </DialogTrigger>
+                  
+                  {/* --- POPUP CONTENT (Excel Style View) --- */}
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold text-[#1e3a8a] flex items-center gap-2">
+                        <ClipboardList className="text-[#fbbf24]" /> Today's Live Register
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    {liveData ? (
+                      <Tabs defaultValue="Entry" className="w-full mt-4">
+                        <TabsList className="grid w-full grid-cols-4 bg-gray-100 p-1 rounded-lg">
+                          {["Entry", "Washing", "Ready", "Delivery"].map((tab) => (
+                            <TabsTrigger 
+                              key={tab} 
+                              value={tab}
+                              className="data-[state=active]:bg-white data-[state=active]:text-[#1e3a8a] data-[state=active]:shadow-sm font-bold text-xs md:text-sm"
+                            >
+                              {tab} ({liveData[tab]?.length || 0})
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+
+                        {/* Generate Content for each Sheet */}
+                        {["Entry", "Washing", "Ready", "Delivery"].map((tab) => (
+                          <TabsContent key={tab} value={tab} className="mt-4 border rounded-lg overflow-hidden">
+                            <div className="max-h-[400px] overflow-auto">
+                              <Table>
+                                <TableHeader className="bg-[#1e3a8a]">
+                                  <TableRow>
+                                    <TableHead className="text-white font-bold w-[100px]">Time</TableHead>
+                                    <TableHead className="text-white font-bold">Card No</TableHead>
+                                    <TableHead className="text-white font-bold">Name</TableHead>
+                                    {tab === "Washing" && <TableHead className="text-white font-bold text-right">Clothes</TableHead>}
+                                    <TableHead className="text-white font-bold text-right">Room</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {liveData[tab]?.length === 0 ? (
+                                    <TableRow>
+                                      <TableCell colSpan={5} className="text-center h-24 text-gray-500">
+                                        No entries in this register yet.
+                                      </TableCell>
+                                    </TableRow>
+                                  ) : (
+                                    liveData[tab]?.map((row: any, index: number) => (
+                                      <TableRow key={index} className="even:bg-gray-50">
+                                        <TableCell className="font-mono text-xs">{row["Time"]}</TableCell>
+                                        <TableCell className="font-bold">{row["Card No"]}</TableCell>
+                                        <TableCell>{row["Student Name"]}</TableCell>
+                                        {tab === "Washing" && <TableCell className="text-right font-bold">{row["Clothes Count"]}</TableCell>}
+                                        <TableCell className="text-right">{row["Room No"]}</TableCell>
+                                      </TableRow>
+                                    ))
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    ) : (
+                      <div className="p-10 text-center text-gray-500">Loading Workbook...</div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+
+                {/* --- DOWNLOAD BUTTON --- */}
                 <Button 
                   onClick={handleDownloadReport}
                   variant="outline" 
                   className="hidden md:flex gap-2 border-[#1e3a8a] text-[#1e3a8a] hover:bg-blue-50 font-bold"
                 >
                   <Download size={18} />
-                  Daily Report
+                  Download
                 </Button>
 
                 <div className="hidden md:block text-right">
