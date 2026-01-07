@@ -129,3 +129,51 @@ def get_student_stats(db: Session, card_no: str):
     ).all()
     
     return {"student": student, "active_bags": active_bags}
+
+# --- REPORT GENERATION ---
+from sqlalchemy import func
+
+def get_daily_report_data(db: Session):
+    today = datetime.now().date()
+    
+    # Helper to format data
+    def format_record(t, time_val):
+        return {
+            "Card No": t.student.card_no,
+            "Student Name": t.student.name,
+            "Room No": t.student.room_no,
+            "Registration No": t.student.registration_no,
+            "Clothes Count": t.clothes_count,
+            "Time": time_val.strftime("%I:%M %p") if time_val else "-"
+        }
+
+    # 1. SHEET: ENTRY REGISTER (Created Today)
+    entries = db.query(models.LaundryTransaction).filter(
+        func.date(models.LaundryTransaction.created_at) == today
+    ).all()
+    entry_data = [format_record(t, t.created_at) for t in entries]
+
+    # 2. SHEET: WASHING REGISTER (Washed Today)
+    washing = db.query(models.LaundryTransaction).filter(
+        func.date(models.LaundryTransaction.washing_at) == today
+    ).all()
+    washing_data = [format_record(t, t.washing_at) for t in washing]
+
+    # 3. SHEET: READY REGISTER (Marked Ready Today)
+    ready = db.query(models.LaundryTransaction).filter(
+        func.date(models.LaundryTransaction.ready_at) == today
+    ).all()
+    ready_data = [format_record(t, t.ready_at) for t in ready]
+
+    # 4. SHEET: DELIVERY REGISTER (Delivered Today)
+    delivered = db.query(models.LaundryTransaction).filter(
+        func.date(models.LaundryTransaction.delivered_at) == today
+    ).all()
+    delivery_data = [format_record(t, t.delivered_at) for t in delivered]
+
+    return {
+        "Entry": entry_data,
+        "Washing": washing_data,
+        "Ready": ready_data,
+        "Delivery": delivery_data
+    }

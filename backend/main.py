@@ -3,6 +3,10 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas, crud, database
+from fastapi.responses import StreamingResponse
+import pandas as pd
+import io 
+from datetime import datetime 
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -82,3 +86,53 @@ def check_status(card_no: str, db: Session = Depends(get_db)):
     if not data:
         raise HTTPException(status_code=404, detail="Student not found")
     return data
+
+
+# --- REPORT EXPORT ---
+@app.get("/export/daily")
+def export_daily_report(db: Session = Depends(get_db)):
+    # 1. Get Data
+    data = crud.get_daily_report_data(db)
+    
+    # 2. Create Excel in Memory (No saving to disk)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Sheet 1: Entry
+        df_entry = pd.DataFrame(data["Entry"])
+        if not df_entry.empty:
+            df_entry.to_excel(writer, sheet_name="Entry Register", index=False)
+        else:
+            pd.DataFrame(["No Entries Today"]).to_excel(writer, sheet_name="Entry Register", header=False, index=False)
+
+        # Sheet 2: Washing
+        df_wash = pd.DataFrame(data["Washing"])
+        if not df_wash.empty:
+            df_wash.to_excel(writer, sheet_name="Washing Register", index=False)
+        else:
+             pd.DataFrame(["No Washing Today"]).to_excel(writer, sheet_name="Washing Register", header=False, index=False)
+
+        # Sheet 3: Ready
+        df_ready = pd.DataFrame(data["Ready"])
+        if not df_ready.empty:
+            df_ready.to_excel(writer, sheet_name="Ready Register", index=False)
+        else:
+             pd.DataFrame(["No Ready Today"]).to_excel(writer, sheet_name="Ready Register", header=False, index=False)
+
+        # Sheet 4: Delivery
+        df_del = pd.DataFrame(data["Delivery"])
+        if not df_del.empty:
+            df_del.to_excel(writer, sheet_name="Delivery Register", index=False)
+        else:
+             pd.DataFrame(["No Deliveries Today"]).to_excel(writer, sheet_name="Delivery Register", header=False, index=False)
+
+    output.seek(0)
+    
+    # 3. Generate Filename with Date
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"Laundry_Report_{today_str}.xlsx"
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    
+    return StreamingResponse(output, headers=headers, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
