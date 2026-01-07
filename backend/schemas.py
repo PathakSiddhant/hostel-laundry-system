@@ -13,8 +13,8 @@ class BagStatus(str, Enum):
 # --- STUDENT ---
 class StudentBase(BaseModel):
     name: str
-    card_no: str # This is the Bag Number
-    registration_no: str # New Field
+    card_no: str
+    registration_no: str
     room_no: str
     phone_number: Optional[str] = None
     total_credits: int = 50
@@ -29,11 +29,15 @@ class StudentResponse(StudentBase):
 
 # --- TRANSACTION ---
 class TransactionBase(BaseModel):
-    clothes_count: int
+    clothes_count: int = 0 # Default 0
 
-# When Entry happens, we only need Card No (Bag No) and Clothes Count
-class TransactionCreate(TransactionBase):
+# Entry: Only Card No needed now
+class TransactionCreate(BaseModel):
     card_no: str 
+
+# Washing: Now we need Count here
+class WashRequest(BaseModel):
+    clothes_count: int
 
 class TransactionResponse(TransactionBase):
     id: int
