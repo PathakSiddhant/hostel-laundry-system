@@ -1,14 +1,30 @@
-// frontend/src/app/page.tsx
 "use client";
 
 import { useState } from "react";
 import api from "@/utils/api";
-import { Search, Shirt, CheckCircle, Clock, Package } from "lucide-react";
+import { Search, Shirt, CheckCircle, AlertCircle } from "lucide-react";
+
+// --- TYPES (Fixed to avoid 'any' errors) ---
+interface Bag {
+  id: number;
+  status: string;
+  created_at: string;
+  clothes_count: number;
+}
+
+interface StudentData {
+  student: {
+    name: string;
+    room_no: string;
+    total_credits: number;
+  };
+  active_bags: Bag[];
+}
 
 export default function StudentPortal() {
   const [cardNo, setCardNo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<StudentData | null>(null);
   const [error, setError] = useState("");
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -20,106 +36,108 @@ export default function StudentPortal() {
     setData(null);
 
     try {
-      // Backend Call
       const response = await api.get(`/status/${cardNo}`);
       setData(response.data);
-    } catch (err: any) {
-      setError("Bag not found or invalid Card Number.");
+    } catch (err: unknown) {
+      setError("No active laundry found for this Card.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Status Badge Color Logic
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "received": return "bg-gray-100 text-gray-800 border-gray-300";
-      case "washing": return "bg-blue-100 text-blue-800 border-blue-300";
-      case "ready": return "bg-green-100 text-green-800 border-green-300";
-      case "delivered": return "bg-purple-100 text-purple-800 border-purple-300";
+      case "received": return "bg-gray-100 text-gray-700 border-gray-300";
+      case "washing": return "bg-blue-50 text-blue-700 border-blue-200"; 
+      case "ready": return "bg-green-50 text-green-700 border-green-200"; 
+      case "delivered": return "bg-purple-50 text-purple-700 border-purple-200";
       default: return "bg-gray-100 text-gray-800";
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          Laundry Tracker
-        </h1>
-        <p className="text-gray-500 mt-2">Enter your Card Number to check status</p>
+    // FIX APPLIED: Centered content using min-h-screen and justify-center
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-transparent -mt-16">
+      
+      {/* --- CLEAN HEADER (No Logo, Just Title) --- */}
+      <div className="mb-6 text-center">
+        <h2 className="text-3xl font-extrabold text-[#1e3a8a] uppercase tracking-wide">
+          Laundry Status
+        </h2>
+        <div className="h-1 w-20 bg-[#fbbf24] mx-auto mt-2 rounded-full"></div>
+        <p className="text-gray-500 text-sm mt-2">Enter your ID Card Number to track clothes</p>
       </div>
 
-      {/* Search Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-        <form onSubmit={handleSearch} className="flex gap-2">
+      {/* --- SEARCH BAR (Clean & Wide) --- */}
+      <div className="w-full max-w-lg">
+        <form onSubmit={handleSearch} className="relative flex items-center shadow-lg rounded-full">
           <input
             type="text"
-            placeholder="Enter Card No (e.g., C101)"
+            placeholder="Search Bag / Card No (e.g. C101)"
             value={cardNo}
             onChange={(e) => setCardNo(e.target.value)}
-            className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            className="w-full p-4 pl-6 bg-white border-2 border-gray-100 rounded-l-full focus:outline-none focus:border-[#1e3a8a] text-lg font-medium uppercase text-gray-800 placeholder:normal-case transition-all"
           />
           <button
             type="submit"
             disabled={loading}
-            className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-2"
+            className="bg-[#1e3a8a] hover:bg-[#172554] text-white px-8 py-4 rounded-r-full font-bold transition-all flex items-center justify-center"
           >
-            {loading ? "..." : <Search size={20} />}
+            {loading ? "..." : <Search size={24} />}
           </button>
         </form>
 
-        {/* Error Message */}
+        {/* ERROR MESSAGE */}
         {error && (
-          <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm text-center font-medium">
+          <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-center font-medium border border-red-100 animate-in fade-in">
             {error}
           </div>
         )}
       </div>
 
-      {/* Result Card */}
+      {/* --- RESULT CARD --- */}
       {data && (
-        <div className="w-full max-w-md mt-6 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Student Info */}
-          <div className="bg-gray-900 p-4 text-white flex justify-between items-center">
+        <div className="w-full max-w-lg mt-8 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+          
+          {/* Student Info Header */}
+          <div className="bg-[#1e3a8a] p-5 text-white flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-bold">{data.student.name}</h2>
-              <p className="text-gray-400 text-sm">Room: {data.student.room_no}</p>
+              <h3 className="text-xl font-bold">{data.student.name}</h3>
+              <p className="text-blue-200 text-sm">Room: {data.student.room_no}</p>
             </div>
             <div className="text-right">
-              <span className="text-xs uppercase tracking-wider text-gray-400">Credits</span>
-              <p className="font-mono text-xl text-yellow-400">{data.student.total_credits}</p>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-blue-300">Credits</span>
+              <p className="font-mono text-2xl font-bold text-[#fbbf24]">{data.student.total_credits}</p>
             </div>
           </div>
 
-          {/* Active Bags List */}
-          <div className="p-4">
-            <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">
-              Active Bags
-            </h3>
-            
+          {/* List */}
+          <div className="p-4 bg-gray-50">
             {data.active_bags.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No active laundry.</p>
             ) : (
               <div className="space-y-3">
-                {data.active_bags.map((bag: any) => (
-                  <div key={bag.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                {data.active_bags.map((bag) => (
+                  <div key={bag.id} className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="bg-white p-2 rounded-full border border-gray-200">
-                         {bag.status === 'ready' ? <CheckCircle size={20} className="text-green-500" /> : <Shirt size={20} className="text-blue-500" />}
+                      <div className={`p-2 rounded-full ${bag.status === 'ready' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {bag.status === 'ready' ? <CheckCircle size={24} /> : <Shirt size={24} />}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Clothes: {bag.clothes_count}</p>
-                        <p className="text-xs text-gray-500">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${getStatusColor(bag.status)}`}>
+                          {bag.status}
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">
                           {new Date(bag.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusColor(bag.status)}`}>
-                      {bag.status}
-                    </span>
+                    {bag.clothes_count > 0 && (
+                      <div className="text-right">
+                          <span className="block text-2xl font-bold text-gray-800">{bag.clothes_count}</span>
+                          <span className="text-[10px] text-gray-400 uppercase">Clothes</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
