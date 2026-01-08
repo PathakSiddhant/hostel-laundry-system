@@ -22,6 +22,14 @@ class StudentBase(BaseModel):
 class StudentCreate(StudentBase):
     pass
 
+# --- NEW: UPDATE SCHEMA ADDED HERE ---
+class StudentUpdate(BaseModel):
+    name: Optional[str] = None
+    room_no: Optional[str] = None
+    phone_number: Optional[str] = None
+    registration_no: Optional[str] = None
+    card_no: Optional[str] = None
+
 class StudentResponse(StudentBase):
     id: int
     class Config:

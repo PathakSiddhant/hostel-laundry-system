@@ -1,5 +1,6 @@
 # backend/crud.py
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime
 import models, schemas
 
@@ -25,16 +26,43 @@ def create_student(db: Session, student: schemas.StudentCreate):
     db.refresh(db_student)
     return db_student
 
-# backend/crud.py (Only replace the create_laundry_entry function)
+# --- NEW: UPDATE STUDENT FUNCTION ADDED HERE ---
+def update_student_details(db: Session, card_no: str, details: schemas.StudentUpdate):
+    student = get_student_by_card(db, card_no)
+    if not student:
+        raise ValueError("Student not found") # Changed to raise Error for better handling
+    
+    # --- LOGIC TO UPDATE CARD NUMBER ---
+    if details.card_no and details.card_no != student.card_no:
+        # Check if new card number already exists
+        existing_student = get_student_by_card(db, details.card_no)
+        if existing_student:
+            raise ValueError(f"Card Number {details.card_no} is already taken!")
+        
+        student.card_no = details.card_no # Update allowed
+
+    # --- REST OF THE UPDATES ---
+    if details.name:
+        student.name = details.name
+    if details.room_no:
+        student.room_no = details.room_no
+    if details.phone_number:
+        student.phone_number = details.phone_number
+    if details.registration_no:
+        student.registration_no = details.registration_no
+        
+    db.commit()
+    db.refresh(student)
+    return student
 
 # --- REGISTER 1: ENTRY (No Count) ---
 def create_laundry_entry(db: Session, entry: schemas.TransactionCreate):
     # 1. Student Find karo
     student = get_student_by_card(db, entry.card_no)
     if not student:
-        raise ValueError("Student/Card not found") # Error message refined
+        raise ValueError("Student/Card not found") 
     
-    # 2. CHECK: Kya bag pehle se andar hai? (The Fix)
+    # 2. CHECK: Kya bag pehle se andar hai?
     active_transaction = db.query(models.LaundryTransaction).filter(
         models.LaundryTransaction.student_id == student.id,
         models.LaundryTransaction.status != models.BagStatus.DELIVERED
@@ -64,14 +92,12 @@ def create_laundry_entry(db: Session, entry: schemas.TransactionCreate):
     db.refresh(db_transaction)
     return db_transaction
 
-# backend/crud.py (Only replace the update_bag_status function)
-
 # --- REGISTER 2, 3, 4: STATUS UPDATES (With Strict Checks) ---
 def update_bag_status(db: Session, card_no: str, new_status: models.BagStatus, clothes_count: int = None):
     # 1. Find Student
     student = get_student_by_card(db, card_no)
     if not student:
-        raise ValueError("Student Card not found") # Error message refined
+        raise ValueError("Student Card not found")
 
     # 2. Find Active Transaction
     transaction = db.query(models.LaundryTransaction).filter(
@@ -82,7 +108,7 @@ def update_bag_status(db: Session, card_no: str, new_status: models.BagStatus, c
     if not transaction:
         raise ValueError("No active bag found. Please create Entry first.")
     
-    # 3. STRICT TRAFFIC RULES (The Fix)
+    # 3. STRICT TRAFFIC RULES
     current_status = transaction.status
 
     # Rule A: Moving to WASHING
@@ -131,8 +157,6 @@ def get_student_stats(db: Session, card_no: str):
     return {"student": student, "active_bags": active_bags}
 
 # --- REPORT GENERATION ---
-from sqlalchemy import func
-
 def get_daily_report_data(db: Session):
     today = datetime.now().date()
     

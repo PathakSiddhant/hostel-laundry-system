@@ -32,10 +32,21 @@ def get_db():
     finally:
         db.close()
 
-# --- SETUP ---
+# --- STUDENT SETUP ---
+
 @app.post("/students/", response_model=schemas.StudentResponse)
 def create_student(student: schemas.StudentCreate, db: Session = Depends(get_db)):
     return crud.create_student(db=db, student=student)
+
+# --- NEW: UPDATE STUDENT ENDPOINT ADDED HERE ---
+@app.put("/students/{card_no}")
+def update_student(card_no: str, details: schemas.StudentUpdate, db: Session = Depends(get_db)):
+    try:
+        student = crud.update_student_details(db, card_no, details)
+        return {"message": "Student Updated Successfully", "student": student}
+    except ValueError as e:
+        # Agar Student nahi mila ya Card No duplicate hai
+        raise HTTPException(status_code=400, detail=str(e))
 
 # --- REGISTER 1: ENTRY (Scan Only) ---
 @app.post("/entry/", response_model=schemas.TransactionResponse)
@@ -47,8 +58,6 @@ def add_laundry_entry(entry: schemas.TransactionCreate, db: Session = Depends(ge
         return transaction
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-# backend/main.py (Update these 3 functions)
 
 # --- REGISTER 2: WASHING ---
 @app.put("/process/wash/{card_no}")

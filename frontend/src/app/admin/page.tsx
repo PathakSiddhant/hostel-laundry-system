@@ -39,6 +39,11 @@ export default function AdminDashboard() {
   const [liveData, setLiveData] = useState<any>(null);
   const [isLiveOpen, setIsLiveOpen] = useState(false);
 
+  // --- MANAGE STUDENT STATE ---
+  const [manageCard, setManageCard] = useState("");
+  const [editData, setEditData] = useState<any>(null); // Stores fetched student data
+  const [manageMsg, setManageMsg] = useState("");
+
   // --- LOGIN HANDLER ---
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +79,47 @@ export default function AdminDashboard() {
       setLiveData(response.data);
     } catch (error) {
       alert("Failed to load live data");
+    }
+  };
+
+  // --- MANAGE HANDLERS ---
+  // Fetch Student for Editing
+  const handleSearchEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!manageCard) return;
+    setLoading(true); setManageMsg(""); setEditData(null);
+    try {
+      const res = await api.get(`/status/${manageCard}`);
+      setEditData(res.data.student); // Pre-fill form with existing data
+    } catch (err) {
+      setManageMsg("Student not found.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save Changes
+  const handleSaveEdit = async () => {
+    if(!editData) return;
+    setLoading(true);
+    setManageMsg(""); // Clear previous message
+    try {
+      // Note: URL mein purana card no (manageCard) use karte hain identify karne ke liye
+      // Body mein naya card no (editData.card_no) bhejte hain update karne ke liye
+      await api.put(`/students/${manageCard}`, {
+        name: editData.name,
+        room_no: editData.room_no,
+        phone_number: editData.phone_number,
+        registration_no: editData.registration_no,
+        card_no: editData.card_no // <--- NEW: Sending updated Card No
+      });
+      setManageMsg("✅ Details Updated Successfully!");
+      setEditData(null); setManageCard(""); // Clear after save
+    } catch (err: any) {
+      // Backend error show karega (e.g. "Card Number already exists")
+      setManageMsg(`❌ ${err.response?.data?.detail || "Failed to update."}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -332,6 +378,10 @@ export default function AdminDashboard() {
                 <TabsTrigger value="delivery" className="flex-1 flex flex-col items-center justify-center gap-2 px-8 py-4 rounded-xl border border-transparent hover:bg-gray-50 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all min-w-[120px]">
                     <Truck size={28} /> <span className="text-sm font-bold">DELIVER</span>
                 </TabsTrigger>
+                {/* MANAGE TAB TRIGGER */}
+                <TabsTrigger value="manage" className="flex-1 flex flex-col items-center justify-center gap-2 px-8 py-4 rounded-xl border border-transparent hover:bg-gray-50 data-[state=active]:bg-gray-800 data-[state=active]:text-white transition-all min-w-[120px]">
+                    <ClipboardList size={28} /> <span className="text-sm font-bold">MANAGE</span>
+                </TabsTrigger>
             </TabsList>
           </div>
 
@@ -414,6 +464,82 @@ export default function AdminDashboard() {
                         <Button type="submit" size="lg" disabled={loading} className="w-full h-14 text-lg bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg">DELIVER BAG</Button>
                     </form>
                     {delResult && (<div className={`p-4 rounded-xl font-bold text-center ${delResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{delResult.message}</div>)}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 5: MANAGE STUDENTS */}
+            <TabsContent value="manage">
+              <Card className="bg-white border-0 shadow-xl rounded-2xl overflow-hidden">
+                <div className="bg-gray-800 h-2 w-full"></div>
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-gray-800">Manage Students</CardTitle>
+                  <CardDescription>Edit Student Details / Fix Errors</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="max-w-md mx-auto space-y-6 py-4">
+                    
+                    {/* Search Section */}
+                    <form onSubmit={handleSearchEdit} className="flex gap-2">
+                        <Input 
+                          placeholder="SEARCH CARD (e.g. C101)" 
+                          className="text-lg h-12 uppercase font-bold" 
+                          value={manageCard} 
+                          onChange={(e) => setManageCard(e.target.value)} 
+                        />
+                        {/* Search Button now clearly visible */}
+                        <Button type="submit" disabled={loading} className="bg-gray-800 hover:bg-gray-900 text-white font-bold h-12 px-6">
+                           Search
+                        </Button>
+                    </form>
+
+                    {/* Edit Form (Only shows if student found) */}
+                    {editData && (
+                      <div className="space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in">
+                        
+                        {/* --- NEW: CARD NUMBER EDIT --- */}
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase">Card Number (ID)</label>
+                          <div className="flex gap-2">
+                             <Input 
+                               value={editData.card_no} 
+                               onChange={(e) => setEditData({...editData, card_no: e.target.value.toUpperCase()})} 
+                               className="font-bold text-[#1e3a8a]"
+                             />
+                             {/* Change Indicator */}
+                             {editData.card_no !== manageCard && (
+                               <span className="text-xs text-orange-500 font-bold flex items-center shrink-0">Changing ID!</span>
+                             )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase">Name</label>
+                          <Input value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Room No</label>
+                            <Input value={editData.room_no} onChange={(e) => setEditData({...editData, room_no: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Phone</label>
+                            <Input value={editData.phone_number} onChange={(e) => setEditData({...editData, phone_number: e.target.value})} />
+                          </div>
+                        </div>
+                          <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase">Registration No</label>
+                            <Input value={editData.registration_no} onChange={(e) => setEditData({...editData, registration_no: e.target.value})} />
+                          </div>
+
+                        <Button onClick={handleSaveEdit} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-12 mt-4">
+                          {loading ? "SAVING..." : "SAVE CHANGES"}
+                        </Button>
+                      </div>
+                    )}
+
+                    {manageMsg && <p className="text-center font-bold mt-4 animate-in fade-in">{manageMsg}</p>}
                   </div>
                 </CardContent>
               </Card>
