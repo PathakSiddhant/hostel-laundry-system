@@ -422,6 +422,37 @@ export default function AdminDashboard() {
           </div>
         </Tabs>
       </div>
+
+      {/* --- ADMIN FOOTER --- */}
+      <footer className="mt-12 py-6 border-t border-gray-200 text-center bg-white/50 backdrop-blur-sm">
+        <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-2">
+          System Developed By
+        </p>
+        <div className="flex justify-center items-center gap-2 text-sm font-bold text-[#1e3a8a]">
+          <a 
+            href="https://www.linkedin.com/in/siddhant-pathak-380a5b31a/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-[#fbbf24] transition-colors"
+          >
+            Siddhant Pathak
+          </a>
+          <span className="text-gray-300">&</span>
+          <a 
+            href="https://www.linkedin.com/in/rohit-murmu-b17916290/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-[#fbbf24] transition-colors"
+          >
+            Rohit Murmu
+          </a>
+        </div>
+        <div className="flex justify-center items-center gap-2 mt-1">
+             <span className="bg-[#fbbf24] h-1.5 w-1.5 rounded-full"></span>
+             <p className="text-[10px] text-gray-500 font-medium">Poornima University • Batch 2023-27</p>
+        </div>
+      </footer>
+
     </div>
   );
 }

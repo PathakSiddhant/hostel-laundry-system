@@ -145,6 +145,46 @@ export default function StudentPortal() {
           </div>
         </div>
       )}
+
+      {/* --- IMPROVED CREDITS FOOTER --- */}
+      {/* Added responsive padding and flexible layout */}
+      <footer className="w-full mt-16 pb-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        
+        <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-gray-400 font-bold mb-3">
+          Designed & Developed By
+        </p>
+
+        {/* flex-col for Mobile (Stack Names) 
+            md:flex-row for Desktop (Names Side-by-Side)
+        */}
+        <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-8 text-lg md:text-xl font-extrabold text-[#1e3a8a]">
+          <a 
+            href="https://www.linkedin.com/in/siddhant-pathak-380a5b31a/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:text-[#fbbf24] transition-colors hover:scale-105 transform duration-200 border-b-2 border-transparent hover:border-[#fbbf24]"
+          >
+            Siddhant Pathak
+          </a>
+          
+          {/* Divider only visible on Desktop */}
+          <span className="hidden md:inline text-gray-300">|</span>
+          
+          <a 
+            href="https://www.linkedin.com/in/rohit-murmu-b17916290/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:text-[#fbbf24] transition-colors hover:scale-105 transform duration-200 border-b-2 border-transparent hover:border-[#fbbf24]"
+          >
+            Rohit Murmu
+          </a>
+        </div>
+
+        <p className="text-xs md:text-sm text-gray-400 mt-3 font-medium">
+          B.Tech CSE (AI & DS) • Batch 2023-27
+        </p>
+      </footer>
+
     </main>
   );
 }
